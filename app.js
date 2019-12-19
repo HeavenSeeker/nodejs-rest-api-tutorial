@@ -4,17 +4,47 @@ const app = express()
 const morgan = require('morgan')
 const mysql = require('mysql')
 
+const bodyParser = require('body-parser')
+
+app.use(bodyParser.urlencoded({ extended: false }))
+
+app.use(express.static('./public'))
+
 app.use(morgan('short'))
 
-app.get('/user/:id', (req, res) => {
-    console.log("Fetching user with id: " + req.params.id)
+app.post('/user_create', (req, res) => {
+    console.log("Trying to create a new user...")
+    const firstName = req.body.create_first_name
+    const lastName = req.body.create_last_name
+    
+    const query = "INSERT INTO users (first_name, last_name) VALUES (?,?)"
+    getConnection().query(query, [firstName, lastName], (err, results, fields)=>{
+        if(err){
+            console.log("Failed to insert new user: " + err)
+            res.sendStatus(500)
+            return
+        }
 
-    const connection = mysql.createConnection({
+        console.log("Inserted a new user with id: ", results.insertId)
+        res.end()
+    })
+    
+    res.end()
+})
+
+function getConnection(){
+    return mysql.createConnection({
         host: 'localhost',
         user: 'root',
         password: 'gamadev',
         database: 'node_db'
     })
+}
+
+app.get('/user/:id', (req, res) => {
+    console.log("Fetching user with id: " + req.params.id)
+
+    const connection = getConnection()
 
     const userId = req.params.id
     const query = "SELECT * FROM users WHERE id= ?"
@@ -43,12 +73,7 @@ app.get("/", (req, res) => {
 })
 
 app.get("/users", (req, res) => {
-    const connection = mysql.createConnection({
-        host: 'localhost',
-        user: 'root',
-        password: 'gamadev',
-        database: 'node_db'
-    })
+    const connection = getConnection()
 
     const query = "SELECT * FROM users"
     connection.query(query, (err, rows, fields) => {
