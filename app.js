@@ -4,7 +4,7 @@ const app = express()
 const morgan = require('morgan')
 const mysql = require('mysql')
 
-app.use(morgan('combined'))
+app.use(morgan('short'))
 
 app.get('/user/:id', (req, res) => {
     console.log("Fetching user with id: " + req.params.id)
@@ -43,11 +43,30 @@ app.get("/", (req, res) => {
 })
 
 app.get("/users", (req, res) => {
-    var user1 = { firstName: "Stephen", lastName: "Curry" }
-    const user2 = { firstName: "Stephen", lastName: "Curry" }
-    res.json([user1, user2])
+    const connection = mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        password: 'gamadev',
+        database: 'node_db'
+    })
 
-    //res.send("Nodemon auto updates when I save this file")
+    const query = "SELECT * FROM users"
+    connection.query(query, (err, rows, fields) => {
+        if (err) {
+            console.log("Failed to query for users " + err)
+            //send 500 error code back to client
+            res.sendStatus(500)
+            return
+        }
+
+        console.log("Fetched users successfully")
+
+        const users = rows.map((row) => {
+            return { firstName: row.first_name, lastName: row.last_name }
+        })
+
+        res.json(users)
+    })
 })
 
 app.listen(3003, () => {
